@@ -30,25 +30,34 @@ const uploadImageToR2 = async (file) => {
 const extractTextAndImage = (html = "") => {
   if (!html) return { text: "", image: null };
 
-  const imgMatch = html.match(/<img[^>]+src="([^"]+)"/i);
-  const image = imgMatch ? imgMatch[1] : null;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
 
-  const text = html
-    .replace(/<img[^>]*>/gi, "")
+  const img = doc.querySelector("img");
+  const image = img ? img.getAttribute("src") : null;
+
+  // remove image so it doesn't stay in text
+  if (img) img.remove();
+
+  const text = doc.body.innerHTML
     .replace(/<\/?p>/gi, "")
     .trim();
 
   return { text, image };
 };
+const removeImagesFromHtml = (html = "") => {
+  return html.replace(/<img[^>]*>/gi, "").trim();
+};
+
 
 export default function AddTest() {
-  const [courseId, setCourseId] = useState("");
   const [thumbnail, setThumbnail] = useState(null);
   const [thumbPreview, setThumbPreview] = useState("");
   const [instructions, setInstructions] = useState("");
 
   // State for the uploaded doc file
   const [docFile, setDocFile] = useState(null);
+  const [testName, setTestName] = useState("");
 
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
@@ -147,7 +156,7 @@ export default function AddTest() {
 
         for (let i = 1; i < rows.length; i++) {
           const cells = rows[i].querySelectorAll("td");
-          if (cells.length < 6) continue; // Skip malformed rows
+          if (cells.length < 8) continue; // Skip malformed rows
 
           extractedQuestions.push({
             // We stick to cleanHtml(cells[x]?.innerHTML) to capture LaTeX and rich content/non-math text
@@ -157,6 +166,8 @@ export default function AddTest() {
             optionC: await cleanContent(cells[3]),
             optionD: await cleanContent(cells[4]),
             correctAnswer: cells[5]?.innerText?.trim() || "",
+            category: cleanContent(cells[6]),   // ✅ per question
+            solution: cleanContent(cells[7])  
           });
         }
 
@@ -176,7 +187,7 @@ export default function AddTest() {
 
 
   const handleSave = async () => {
-    if (!courseId || !thumbnail || !previewQuestions.length) {
+    if (!thumbnail || !previewQuestions.length) {
       alert("Missing required data");
       return;
     }
@@ -195,6 +206,7 @@ export default function AddTest() {
         const bData = extractTextAndImage(q.optionB);
         const cData = extractTextAndImage(q.optionC);
         const dData = extractTextAndImage(q.optionD);
+        const sData = extractTextAndImage(q.solution);
 
         finalQuestions.push({
           question: qData.text,
@@ -225,6 +237,11 @@ export default function AddTest() {
           correctAnswer: q.correctAnswer,
           positiveMarks,
           negativeMarks,
+          category: q.category,     // ✅ per row
+          solution: sData.text,
+          solution_image: sData.image
+            ? await uploadBase64ToR2(sData.image)
+            : null,
         });
       }
 
@@ -233,7 +250,7 @@ export default function AddTest() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          courseId,
+          name: testName,
           thumbnailUrl,
           instructions,
           testTime,
@@ -264,13 +281,13 @@ export default function AddTest() {
 
         {/* Course & Thumb */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="font-semibold block mb-1">Select Course</label>
-            <select className="w-full border p-2 rounded" onChange={(e) => setCourseId(e.target.value)}>
-              <option value="">Select Course</option>
-              {courses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
+        <input
+            className="w-full border p-2 rounded mb-3"
+            placeholder="Test Name"
+            value={testName}
+            onChange={(e) => setTestName(e.target.value)}
+          />
+
           <div>
             <label className="font-semibold block mb-1">Thumbnail</label>
             <input type="file" onChange={handleThumbnail} />
@@ -320,6 +337,8 @@ export default function AddTest() {
                     <th className="p-2 border">C</th>
                     <th className="p-2 border">D</th>
                     <th className="p-2 border">Ans</th>
+                    <th className="p-2 border">Category</th>
+                    <th className="p-2 border">Solution</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -335,9 +354,9 @@ export default function AddTest() {
                             dangerouslySetInnerHTML={{ __html: q.question }}
                           />
                         )}
+                        <MathRenderer text={removeImagesFromHtml(q.question)} />
 
                         {/* 2️⃣ Render ONLY math */}
-                        <MathRenderer text={q.question} />
                       </td>
 
 
@@ -349,7 +368,8 @@ export default function AddTest() {
                             dangerouslySetInnerHTML={{ __html: q.optionA }}
                           />
                         )}
-                        <MathRenderer text={q.optionA} />
+                        <MathRenderer text={removeImagesFromHtml(q.optionA)} />
+
                       </td>
                       <td className="p-2 border space-y-2">
                         {hasImage(q.optionB) && (
@@ -358,8 +378,8 @@ export default function AddTest() {
                             dangerouslySetInnerHTML={{ __html: q.optionB }}
                           />
                         )}
+                        <MathRenderer text={removeImagesFromHtml(q.optionB)} />
 
-                        <MathRenderer text={q.optionB} />
                       </td>
 
                       <td className="p-2 border space-y-2">
@@ -369,8 +389,8 @@ export default function AddTest() {
                             dangerouslySetInnerHTML={{ __html: q.optionC }}
                           />
                         )}
+                        <MathRenderer text={removeImagesFromHtml(q.optionC)} />
 
-                        <MathRenderer text={q.optionC} />
                       </td>
 
                       <td className="p-2 border space-y-2">
@@ -380,12 +400,27 @@ export default function AddTest() {
                             dangerouslySetInnerHTML={{ __html: q.optionD }}
                           />
                         )}
+                        <MathRenderer text={removeImagesFromHtml(q.optionD)} />
 
-                        <MathRenderer text={q.optionD} />
                       </td>
 
 
-                      <td className="p-2 border font-bold text-green-600">{q.correctAnswer}</td>
+                      <td className="p-2 border font-bold">{q.correctAnswer}</td>
+                     <td className="p-2 border font-bold">  {hasImage(q.category) && (
+                          <div
+                            className="max-w-xs"
+                            dangerouslySetInnerHTML={{ __html: q.category }}
+                          />
+                        )}
+                        <MathRenderer text={removeImagesFromHtml(q.category)} /></td>
+                        <td className="p-2 border font-bold">  {hasImage(q.solution) && (
+                          <div
+                            className="max-w-xs"
+                            dangerouslySetInnerHTML={{ __html: q.solution }}
+                          />
+                        )}
+                        <MathRenderer text={removeImagesFromHtml(q.solution)} /></td>
+
                     </tr>
                   ))}
                 </tbody>

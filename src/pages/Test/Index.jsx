@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { FaEdit, FaPlus } from "react-icons/fa";
+import {
+  FaEdit,
+  FaPlus,
+  FaTrash,
+  FaSearch,
+  FaBookOpen,
+  FaListUl,
+  FaChevronLeft,
+  FaChevronRight,
+} from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
@@ -8,84 +17,190 @@ export default function Test() {
   const navigate = useNavigate();
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 1;
 
   const handleAddCourse = () => navigate("/Test/add");
 
-  useEffect(() => {
-    const fetchTests = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/test/list`);
-        const data = await res.json();
-        if (res.ok) setTests(data || []);
-      } catch (err) {
-        console.error("Error loading test list:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchTests = async (query = search, pageNum = page) => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/test/list?search=${encodeURIComponent(
+          query
+        )}&page=${pageNum}&limit=${limit}`
+      );
+      const result = await res.json();
 
-    fetchTests();
-  }, []);
+      if (res.ok) {
+        setTests(result.data || []);
+        setTotalPages(result.pagination.totalPages);
+      }
+    } catch (err) {
+      console.error("Error loading test list:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTests(search, page);
+  }, [page]);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this test?")) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/test/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Delete failed");
+
+      setTests((prev) => prev.filter((t) => t.id !== id));
+      alert("Test deleted successfully");
+    } catch {
+      alert("Failed to delete test");
+    }
+  };
 
   return (
-    <div className="relative p-8 min-h-screen bg-gradient-to-br from-gray-100 to-gray-200">
-      {/* Page Title */}
-      <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center text-gray-800">
-        📘 Our Tests
-      </h1>
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200 px-6 py-10">
+      {/* HEADER */}
+      <div className="max-w-7xl mx-auto mb-10 text-center">
+        <h1 className="flex items-center justify-center gap-3 text-4xl font-extrabold text-gray-800">
+          <FaBookOpen /> Test Management
+        </h1>
+        <p className="text-gray-600 mt-2">
+          Create, manage and organize your tests beautifully
+        </p>
+      </div>
 
-      {loading ? (
-        <p className="text-center text-gray-500">Loading tests...</p>
-      ) : tests.length === 0 ? (
-        <p className="text-center text-gray-500">No tests found.</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {tests.map((test) => (
-            <div
-              key={test.id}
-              className="rounded-xl shadow-xl bg-white/70 backdrop-blur-md border border-gray-200 overflow-hidden transform hover:scale-[1.03] transition-all duration-300 hover:shadow-2xl"
-            >
-              {/* Image */}
-              <div className="overflow-hidden">
-                <img
-                  src={test.thumbnail}
-                  alt="Test Thumbnail"
-                  className="w-full h-44 object-cover transition duration-300 hover:scale-105"
-                />
-              </div>
+      {/* SEARCH */}
+      <div className="max-w-xl mx-auto mb-10 relative">
+        <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search test by name..."
+          value={search}
+          onChange={(e) => {
+            const value = e.target.value;
+            setSearch(value);
+            setPage(1);
+            fetchTests(value, 1);
+          }}
+          className="w-full pl-12 pr-4 py-3 rounded-full border shadow-md focus:ring-2 focus:ring-blue-500 outline-none"
+        />
+      </div>
 
-              <div className="p-5">
-                {/* Course Name */}
-                <h2 className="font-semibold text-xl text-gray-800 mb-1">
-                  {test.course_name || "Unknown Course"}
-                </h2>
+      {/* CONTENT */}
+      <div className="max-w-7xl mx-auto">
+        {loading ? (
+          <p className="text-center text-gray-500">Loading tests...</p>
+        ) : tests.length === 0 ? (
+          <p className="text-center text-gray-500">No tests found.</p>
+        ) : (
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {tests.map((test) => (
+              <div
+                key={test.id}
+                className="group rounded-2xl bg-white/80 backdrop-blur-md border
+                           shadow-lg hover:shadow-2xl transition-all duration-300
+                           hover:-translate-y-1 overflow-hidden"
+              >
+                {/* IMAGE */}
+                <div className="relative overflow-hidden">
+                  <img
+                    src={test.thumbnail}
+                    alt="Test"
+                    className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
 
-                {/* Question Count */}
-                <p className="text-gray-600 text-sm">
-                  📝 Questions:{" "}
-                  <span className="font-semibold text-gray-800">
+                  <span className="absolute top-3 right-3 flex items-center gap-1 bg-black/70 text-white text-xs px-3 py-1 rounded-full">
+                    <FaListUl size={12} />
                     {test.question_count}
                   </span>
-                </p>
+                </div>
 
-                {/* Edit Button */}
-                <button
-                  onClick={() => navigate(`/Test/edit/${test.id}`)}
-                  className="mt-5 w-full flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg shadow-md transition-all duration-300"
-                >
-                  <FaEdit /> Edit Test
-                </button>
+                {/* BODY */}
+                <div className="p-6">
+                  <h2 className="text-xl font-bold text-gray-800 truncate">
+                    {test.name || "Unnamed Test"}
+                  </h2>
+
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      onClick={() => navigate(`/Test/edit/${test.id}`)}
+                      className="flex-1 flex items-center justify-center gap-2
+                                 bg-yellow-500 hover:bg-yellow-600 text-white
+                                 px-4 py-2 rounded-xl shadow-md transition"
+                    >
+                      <FaEdit /> Edit
+                    </button>
+
+                    <button
+                      onClick={() => handleDelete(test.id)}
+                      className="flex-1 flex items-center justify-center gap-2
+                                 bg-red-500 hover:bg-red-600 text-white
+                                 px-4 py-2 rounded-xl shadow-md transition"
+                    >
+                      <FaTrash /> Delete
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-10 gap-2">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+            className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 disabled:opacity-50 flex items-center gap-1"
+          >
+            <FaChevronLeft /> Prev
+          </button>
+
+          {[...Array(totalPages)].map((_, i) => {
+            const pageNum = i + 1;
+            return (
+              <button
+                key={pageNum}
+                onClick={() => setPage(pageNum)}
+                className={`px-4 py-2 rounded-lg ${
+                  page === pageNum
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 hover:bg-gray-300"
+                }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+            className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 disabled:opacity-50 flex items-center gap-1"
+          >
+            Next <FaChevronRight />
+          </button>
         </div>
       )}
 
-      {/* Floating Add Button */}
+      {/* FLOATING ADD BUTTON */}
       <button
         onClick={handleAddCourse}
-        className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-5 shadow-xl transition-all duration-300 flex items-center justify-center active:scale-90"
-        style={{ boxShadow: "0 8px 25px rgba(0,0,0,0.25)" }}
+        className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700
+                   text-white rounded-full p-5 shadow-2xl
+                   transition active:scale-90"
+        title="Add New Test"
       >
         <FaPlus size={22} />
       </button>

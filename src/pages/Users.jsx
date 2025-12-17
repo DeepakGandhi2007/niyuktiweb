@@ -10,6 +10,8 @@ export default function Users() {
   const [updating, setUpdating] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [showInfo, setShowInfo] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/auth/get-users`;
   const TOGGLE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/auth/toggle-ban`;
@@ -22,22 +24,26 @@ export default function Users() {
       const data = await res.json();
 
       if (data.success) {
-        const formatted = data.users.map((u) => ({
-          id: u.id,
-          name: u.name || "Unknown",
-          email: u.email || "-",
-          phone: u.phone || "-",
-          image:
-            u.image ||
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(
-              u.name || "User"
-            )}&background=random`,
-          googleLogin: u.is_google === 1,
-          banned: u.is_banned === 1 || false,
-        }));
-        setUsers(formatted);
+        setUsers(
+          data.users.map((u) => ({
+            raw: u, // ✅ store full backend user
+            id: u.id,
+            name: u.name || "Unknown",
+            email: u.email || "-",
+            phone: u.phone || "-",
+            image:
+              u.image ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                u.name || "User"
+              )}&background=random`,
+            googleLogin: u.is_google === 1,
+            banned: u.is_banned === 1 || false,
+          }))
+        );
+
         setTotalPages(data.totalPages || 1);
-      } else {
+      }
+      else {
         setError(data.message || "Failed to fetch users");
       }
     } catch (err) {
@@ -141,15 +147,24 @@ export default function Users() {
                         className="text-blue-500 dark:text-blue-400"
                       />
                     </a>
+                    <button
+                      onClick={() => {
+                        setSelectedUser(user.raw);
+                        setShowInfo(true);
+                      }}
+                      className="mt-2 px-3 py-1 text-xs rounded-full bg-purple-600 text-white hover:bg-purple-700 transition"
+                    >
+                      AIl  Info
+                    </button>
+
                   </div>
 
                   {/* 🔐 Login Type */}
                   <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
-                      user.googleLogin
-                        ? "bg-green-100 text-green-700 dark:bg-green-700/20 dark:text-green-400"
-                        : "bg-yellow-100 text-yellow-700 dark:bg-yellow-700/20 dark:text-yellow-400"
-                    }`}
+                    className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${user.googleLogin
+                      ? "bg-green-100 text-green-700 dark:bg-green-700/20 dark:text-green-400"
+                      : "bg-yellow-100 text-yellow-700 dark:bg-yellow-700/20 dark:text-yellow-400"
+                      }`}
                   >
                     <LogIn size={12} />{" "}
                     {user.googleLogin ? "Google Login" : "Mobile Login"}
@@ -167,9 +182,8 @@ export default function Users() {
                       />
                       <div className="w-11 h-6 bg-green-300 rounded-full peer-checked:bg-red-500 dark:bg-gray-700 transition-all duration-300"></div>
                       <div
-                        className={`absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full shadow transition-transform duration-300 ${
-                          user.banned ? "translate-x-5" : ""
-                        }`}
+                        className={`absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full shadow transition-transform duration-300 ${user.banned ? "translate-x-5" : ""
+                          }`}
                       ></div>
                     </label>
 
@@ -202,11 +216,10 @@ export default function Users() {
               <button
                 key={i}
                 onClick={() => setPage(i + 1)}
-                className={`px-3 py-1 rounded-md text-sm ${
-                  page === i + 1
-                    ? "bg-black text-white dark:bg-gray-700"
-                    : "bg-gray-200 dark:bg-gray-800"
-                }`}
+                className={`px-3 py-1 rounded-md text-sm ${page === i + 1
+                  ? "bg-black text-white dark:bg-gray-700"
+                  : "bg-gray-200 dark:bg-gray-800"
+                  }`}
               >
                 {i + 1}
               </button>
@@ -222,6 +235,42 @@ export default function Users() {
           </div>
         </>
       )}
+      {showInfo && selectedUser && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-2xl rounded-xl shadow-lg overflow-hidden">
+            {/* Header */}
+            <div className="flex justify-between items-center px-5 py-3 border-b dark:border-gray-800">
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                 AIl User Intelligence
+              </h2>
+              <button
+                onClick={() => setShowInfo(false)}
+                className="text-gray-500 hover:text-red-500 text-xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5 max-h-[70vh] overflow-y-auto">
+              <pre className="text-sm bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
+                {JSON.stringify(selectedUser, null, 2)}
+              </pre>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 border-t dark:border-gray-800 text-right">
+              <button
+                onClick={() => setShowInfo(false)}
+                className="px-4 py-1 rounded-md bg-black text-white dark:bg-gray-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
