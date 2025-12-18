@@ -1,5 +1,16 @@
 import React, { useEffect, useState } from "react";
 import FileManagerPicker from "./FileManagerPicker.jsx";
+import TestManagerPicker from "./TestManagerPicker.jsx";
+import {
+    FaFolder,
+    FaFolderOpen,
+    FaFileAlt
+} from "react-icons/fa";
+import { FaFilePdf, FaFileVideo, FaFileAudio } from "react-icons/fa";
+
+import {
+    MdQuiz
+} from "react-icons/md"; // 📝 TEST ICON
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -19,6 +30,7 @@ export default function CourseStructureModal({ open, onClose, courseId }) {
     const [existingFiles, setExistingFiles] = useState([]);
     const [selectedExisting, setSelectedExisting] = useState(null);
     const [chapters, setChapters] = useState([{ label: "", start: "", end: "" }]);
+    const [testPickerOpen, setTestPickerOpen] = useState(false);
 
     useEffect(() => {
         if (!open) return;
@@ -392,6 +404,28 @@ export default function CourseStructureModal({ open, onClose, courseId }) {
         setUploadOpen(false);
         await load();
     };
+    const onAddFromTestManager = async (tests) => {
+        if (!tests.length) return;
+
+        for (const t of tests) {
+            await fetch(`${API_URL}/api/course-structure/add-test`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    courseId,
+                    sectionType: tab,
+                    testId: t.id,
+                    parentId:
+                        selectedNode?.type === "folder"
+                            ? selectedNode.id
+                            : null
+                })
+            });
+        }
+
+        await load();
+        setTestPickerOpen(false);
+    };
 
     /** -------------------------- UI ---------------------------- */
 
@@ -400,44 +434,88 @@ export default function CourseStructureModal({ open, onClose, courseId }) {
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-auto">
             <div className="bg-white w-full max-w-4xl rounded shadow-lg p-3">
-                <div className="flex justify-between items-center border-b pb-2">
-                    <h3 className="font-semibold">Edit Course Structure</h3>
+                <div className="flex items-center justify-between border-b pb-3 mb-3">
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                            Edit Course Structure
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                            Organize syllabus, tests and content
+                        </p>
+                    </div>
 
                     <div className="flex gap-2">
-                        <button className="border px-3 py-1" onClick={onSaveAll}>
-                            Save All
+                        <button
+                            onClick={onSaveAll}
+                            className="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700 transition"
+                        >
+                            💾 Save
                         </button>
-                        <button className="border px-3 py-1" onClick={onClose}>
-                            Close
+
+                        <button
+                            onClick={onClose}
+                            className="border px-4 py-1.5 rounded hover:bg-gray-100 transition"
+                        >
+                            ✕ Close
                         </button>
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex gap-2 my-3">
-                    {["syllabus", "mock", "niyukti"].map((t) => (
-                        <button
-                            key={t}
-                            className={`px-3 py-1 rounded ${tab === t ? "bg-blue-600 text-white" : "border"
-                                }`}
-                            onClick={() => {
-                                setTab(t);
-                                setSelectedNode(null);
-                            }}
-                        >
-                            {t.toUpperCase()}
-                        </button>
-                    ))}
 
-                    <button
-                        className="ml-auto border px-3 py-1"
-                        onClick={() => setPickerOpen(true)}
-                    >
-                        Add From File Manager
-                    </button>
-                    <button className="border px-3 py-1" onClick={onCreateFolder}>Create Folder</button>
-                    <button className="border px-3 py-1" onClick={onUploadFile}>Upload File</button>
+                {/* Tabs */}
+                <div className="flex items-center justify-between mb-4">
+                    {/* Tabs */}
+                    <div className="flex gap-1 bg-gray-100 p-1 rounded">
+                        {["syllabus", "mock", "niyukti"].map((t) => (
+                            <button
+                                key={t}
+                                onClick={() => {
+                                    setTab(t);
+                                    setSelectedNode(null);
+                                }}
+                                className={`px-4 py-1.5 rounded text-sm font-medium transition
+          ${tab === t
+                                        ? "bg-white shadow text-blue-600"
+                                        : "text-gray-600 hover:text-gray-800"
+                                    }`}
+                            >
+                                {t.toUpperCase()}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setTestPickerOpen(true)}
+                            className="border px-3 py-1.5 rounded hover:bg-purple-50 text-purple-700 transition"
+                        >
+                            📝 Add Test
+                        </button>
+
+                        <button
+                            onClick={() => setPickerOpen(true)}
+                            className="border px-3 py-1.5 rounded hover:bg-blue-50 text-blue-700 transition"
+                        >
+                            📂 File Manager
+                        </button>
+
+                        <button
+                            onClick={onCreateFolder}
+                            className="border px-3 py-1.5 rounded hover:bg-yellow-50 text-yellow-700 transition"
+                        >
+                            📁 New Folder
+                        </button>
+
+                        <button
+                            onClick={onUploadFile}
+                            className="bg-gray-800 text-white px-3 py-1.5 rounded hover:bg-gray-900 transition"
+                        >
+                            ⬆ Upload
+                        </button>
+                    </div>
                 </div>
+
 
                 <div className="grid grid-cols-2 gap-4">
                     {/* LEFT */}
@@ -529,6 +607,11 @@ export default function CourseStructureModal({ open, onClose, courseId }) {
                     </div>
                 </div>
             </div>
+            <TestManagerPicker
+                open={testPickerOpen}
+                onClose={() => setTestPickerOpen(false)}
+                onSelect={onAddFromTestManager}
+            />
 
             <FileManagerPicker
                 open={pickerOpen}
@@ -568,32 +651,31 @@ export default function CourseStructureModal({ open, onClose, courseId }) {
                         <div className="border p-2 rounded max-h-40 overflow-y-auto mb-3">
                             <p className="text-sm font-medium mb-1">Select Existing File</p>
 
-                           {existingFiles.map((f) => (
-                            <div
-                                key={f.id}
-                                onClick={() => setSelectedExisting(f)}
-                                className={`p-2 border rounded mb-2 cursor-pointer flex items-center gap-3 ${
-                                selectedExisting?.id === f.id ? "bg-blue-100 border-blue-400" : ""
-                                }`}
-                            >
-                                {/* Thumbnail */}
-                                {f.thumbnail_url ? (
-                                <img 
-                                    src={f.thumbnail_url} 
-                                    className="w-10 h-10 object-cover rounded"
-                                />
-                                ) : (
-                                <div className="w-10 h-10 bg-gray-200 flex items-center justify-center text-xs">
-                                    No Thumb
-                                </div>
-                                )}
+                            {existingFiles.map((f) => (
+                                <div
+                                    key={f.id}
+                                    onClick={() => setSelectedExisting(f)}
+                                    className={`p-2 border rounded mb-2 cursor-pointer flex items-center gap-3 ${selectedExisting?.id === f.id ? "bg-blue-100 border-blue-400" : ""
+                                        }`}
+                                >
+                                    {/* Thumbnail */}
+                                    {f.thumbnail_url ? (
+                                        <img
+                                            src={f.thumbnail_url}
+                                            className="w-10 h-10 object-cover rounded"
+                                        />
+                                    ) : (
+                                        <div className="w-10 h-10 bg-gray-200 flex items-center justify-center text-xs">
+                                            No Thumb
+                                        </div>
+                                    )}
 
-                                {/* File Info */}
-                                <div>
-                                <div className="font-medium">{f.name}</div>
-                                <div className="text-xs text-gray-500">{f.file_type}</div>
+                                    {/* File Info */}
+                                    <div>
+                                        <div className="font-medium">{f.name}</div>
+                                        <div className="text-xs text-gray-500">{f.file_type}</div>
+                                    </div>
                                 </div>
-                            </div>
                             ))}
 
                         </div>
@@ -748,8 +830,40 @@ function TreeView({ nodes, onSelect, selectedId, level = 0 }) {
                                 onClick={() => onSelect(n)}
                                 className="flex items-center"
                             >
-                                {isFolder ? "📁" : "📄"} &nbsp;
-                                {n.is_locked ? "🔒 " : ""}
+                                {/* Icon */}
+                                {n.type === "folder" && (
+                                    isOpen ? (
+                                        <FaFolderOpen className="text-yellow-600 mr-2" />
+                                    ) : (
+                                        <FaFolder className="text-yellow-600 mr-2" />
+                                    )
+                                )}
+
+                                {n.type === "file" && (
+                                    <>
+                                        {n.file_type?.includes("pdf") && (
+                                            <FaFilePdf className="text-red-600 mr-2" />
+                                        )}
+
+                                        {n.file_type?.includes("video") && (
+                                            <FaFileVideo className="text-blue-600 mr-2" />
+                                        )}
+
+                                        {n.file_type?.includes("audio") && (
+                                            <FaFileAudio className="text-green-600 mr-2" />
+                                        )}
+
+                                        {!n.file_type && (
+                                            <FaFileAlt className="text-gray-600 mr-2" />
+                                        )}
+                                    </>
+                                )}
+
+
+                                {n.type === "test" && (
+                                    <MdQuiz className="text-purple-600 mr-2" />
+                                )}
+
                                 {n.name}
                             </span>
                         </div>
