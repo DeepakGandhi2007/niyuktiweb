@@ -14,6 +14,7 @@ import FileManagerPage from "./components/FileManager";
 import Test from "./pages/Test/Index";
 import AddTest from "./pages/Test/add";
 import EditTest from "./pages/Test/EditTest";
+import TestCategories from "./pages/TestCategory";
 function App() {
   return (
     <BrowserRouter>
@@ -28,6 +29,7 @@ function App() {
             <Route path="/users" element={<Users />} />
             <Route path="/banner" element={<Banner />} />
              <Route path="/category" element={<Categories />} />
+            <Route path="/test-category" element={<TestCategories />} />
             <Route path="/course" element={<Course />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/course/add" element={<AddCourse />} />

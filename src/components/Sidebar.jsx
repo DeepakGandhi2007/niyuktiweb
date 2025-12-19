@@ -8,6 +8,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
     { to: "/", icon: <FaHome />, label: "Dashboard" },
     { to: "/users", icon: <FaUsers />, label: "Users" },
     { to: "/category", icon: <FaTags />, label: "Category" },
+    { to: "/test-category", icon: <FaTags />, label: "Test Category" },
     { to: "/banner", icon: <FaImage />, label: "Banner" },
     { to: "/course", icon: <FaBook />, label: "Course" },
     { to: "/mock-test", icon: <FaBook />, label: "Mock Test" },

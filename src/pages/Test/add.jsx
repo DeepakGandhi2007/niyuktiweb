@@ -58,6 +58,8 @@ export default function AddTest() {
   // State for the uploaded doc file
   const [docFile, setDocFile] = useState(null);
   const [testName, setTestName] = useState("");
+const [categories, setCategories] = useState([]);
+const [testCategoryId, setTestCategoryId] = useState("");
 
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
@@ -86,6 +88,11 @@ export default function AddTest() {
     };
     fetchCourses();
   }, []);
+useEffect(() => {
+  fetch(`${API_URL}/api/test-category/get-categories`)
+    .then(res => res.json())
+    .then(data => setCategories(data.categories || []));
+}, []);
 
   // ---------------- Thumbnail Preview ----------------
   const handleThumbnail = (e) => {
@@ -251,6 +258,7 @@ export default function AddTest() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: testName,
+          testCategoryId,
           thumbnailUrl,
           instructions,
           testTime,
@@ -278,6 +286,21 @@ export default function AddTest() {
       <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Create Test (Word Upload)</h1>
 
       <div className="bg-white p-6 rounded-xl shadow-md space-y-6">
+      <div>
+        <label className="font-semibold block mb-1">Test Category</label>
+        <select
+          className="w-full border p-2 rounded"
+          value={testCategoryId}
+          onChange={(e) => setTestCategoryId(e.target.value)}
+        >
+          <option value="">-- Select Category --</option>
+          {categories.map(cat => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
         {/* Course & Thumb */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

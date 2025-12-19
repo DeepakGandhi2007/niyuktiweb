@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   FaEdit,
   FaPlus,
@@ -8,6 +8,8 @@ import {
   FaListUl,
   FaChevronLeft,
   FaChevronRight,
+  FaFolder,
+  FaChevronDown
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
@@ -15,12 +17,17 @@ const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 export default function Test() {
   const navigate = useNavigate();
+
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const limit = 1;
+
+  // 🔽 collapse state
+  const [collapsed, setCollapsed] = useState({});
+
+  const limit = 9;
 
   const handleAddCourse = () => navigate("/Test/add");
 
@@ -36,7 +43,7 @@ export default function Test() {
 
       if (res.ok) {
         setTests(result.data || []);
-        setTotalPages(result.pagination.totalPages);
+        setTotalPages(result.pagination.totalPages || 1);
       }
     } catch (err) {
       console.error("Error loading test list:", err);
@@ -66,10 +73,29 @@ export default function Test() {
     }
   };
 
-  return (
-    // FORCE CHANGE 18 DEC 2025
+  /* ================= GROUP TESTS BY CATEGORY ================= */
 
+  const groupedTests = useMemo(() => {
+    return tests.reduce((acc, test) => {
+      const category = test.category_name || "Uncategorized";
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(test);
+      return acc;
+    }, {});
+  }, [tests]);
+
+  const toggleCollapse = (category) => {
+    setCollapsed((prev) => ({
+      ...prev,
+      [category]: !prev[category],
+    }));
+  };
+
+  /* ================= RENDER ================= */
+
+  return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200 px-6 py-10">
+
       {/* HEADER */}
       <div className="max-w-7xl mx-auto mb-10 text-center">
         <h1 className="flex items-center justify-center gap-3 text-4xl font-extrabold text-gray-800">
@@ -93,7 +119,7 @@ export default function Test() {
             setPage(1);
             fetchTests(value, 1);
           }}
-          className="w-full pl-12 pr-4 py-3 rounded-full border shadow-md focus:ring-2 focus:ring-blue-500 outline-none"
+          className="w-full pl-12 pr-4 py-3 rounded-full border shadow-md focus:ring-2 focus:ring-yellow-500 outline-none"
         />
       </div>
 
@@ -104,63 +130,103 @@ export default function Test() {
         ) : tests.length === 0 ? (
           <p className="text-center text-gray-500">No tests found.</p>
         ) : (
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {tests.map((test) => (
-              <div
-                key={test.id}
-                className="group rounded-2xl bg-white/80 backdrop-blur-md border
-                           shadow-lg hover:shadow-2xl transition-all duration-300
-                           hover:-translate-y-1 overflow-hidden"
-              >
-                {/* IMAGE */}
-                <div className="relative overflow-hidden">
-                  <img
-                    src={test.thumbnail}
-                    alt="Test"
-                    className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
+          <div className="space-y-14">
 
-                  <span className="absolute top-3 right-3 flex items-center gap-1 bg-black/70 text-white text-xs px-3 py-1 rounded-full">
-                    <FaListUl size={12} />
-                    {test.question_count}
-                  </span>
-                </div>
+            {Object.entries(groupedTests).map(([categoryName, categoryTests]) => {
+              const isCollapsed = collapsed[categoryName];
 
-                {/* BODY */}
-                <div className="p-6">
-                  <h2 className="text-xl font-bold text-gray-800 truncate">
-                    {test.name || "Unnamed Test"}
-                  </h2>
+              return (
+                <div key={categoryName}>
 
-                  <div className="flex gap-3 mt-6">
-                    <button
-                      onClick={() => navigate(`/Test/edit/${test.id}`)}
-                      className="flex-1 flex items-center justify-center gap-2
-                                 bg-yellow-500 hover:bg-yellow-600 text-white
-                                 px-4 py-2 rounded-xl shadow-md transition"
-                    >
-                      <FaEdit /> Edit
-                    </button>
+                  {/* 📁 CATEGORY FOLDER HEADER */}
+                  <div
+                    onClick={() => toggleCollapse(categoryName)}
+                    className="flex items-center justify-between cursor-pointer
+                               bg-yellow-100 border border-yellow-300
+                               px-6 py-4 rounded-xl shadow-sm hover:shadow-md transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FaFolder className="text-yellow-600 text-2xl" />
+                      <h2 className="text-2xl font-bold text-yellow-800">
+                        {categoryName}
+                      </h2>
+                      <span className="text-sm text-yellow-700">
+                        ({categoryTests.length} tests)
+                      </span>
+                    </div>
 
-                    <button
-                      onClick={() => handleDelete(test.id)}
-                      className="flex-1 flex items-center justify-center gap-2
-                                 bg-red-500 hover:bg-red-600 text-white
-                                 px-4 py-2 rounded-xl shadow-md transition"
-                    >
-                      <FaTrash /> Delete
-                    </button>
+                    <FaChevronDown
+                      className={`text-yellow-700 text-xl transition-transform ${
+                        isCollapsed ? "-rotate-90" : "rotate-0"
+                      }`}
+                    />
                   </div>
+
+                  {/* 📂 TESTS INSIDE FOLDER */}
+                  {!isCollapsed && (
+                    <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3
+                                    pl-6 mt-6 border-l-4 border-yellow-300">
+                      {categoryTests.map((test) => (
+                        <div
+                          key={test.id}
+                          className="group rounded-2xl bg-white/90 backdrop-blur-md border
+                                     shadow-lg hover:shadow-2xl transition-all duration-300
+                                     hover:-translate-y-1 overflow-hidden"
+                        >
+                          {/* IMAGE */}
+                          <div className="relative overflow-hidden">
+                            <img
+                              src={test.thumbnail}
+                              alt="Test"
+                              className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+
+                            <span className="absolute top-3 right-3 flex items-center gap-1 bg-black/70 text-white text-xs px-3 py-1 rounded-full">
+                              <FaListUl size={12} />
+                              {test.question_count}
+                            </span>
+                          </div>
+
+                          {/* BODY */}
+                          <div className="p-6">
+                            <h3 className="text-lg font-bold text-gray-800 truncate">
+                              {test.name || "Unnamed Test"}
+                            </h3>
+
+                            <div className="flex gap-3 mt-6">
+                              <button
+                                onClick={() => navigate(`/Test/edit/${test.id}`)}
+                                className="flex-1 flex items-center justify-center gap-2
+                                           bg-yellow-500 hover:bg-yellow-600 text-white
+                                           px-4 py-2 rounded-xl shadow-md transition"
+                              >
+                                <FaEdit /> Edit
+                              </button>
+
+                              <button
+                                onClick={() => handleDelete(test.id)}
+                                className="flex-1 flex items-center justify-center gap-2
+                                           bg-red-500 hover:bg-red-600 text-white
+                                           px-4 py-2 rounded-xl shadow-md transition"
+                              >
+                                <FaTrash /> Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* PAGINATION */}
       {totalPages > 1 && (
-        <div className="flex justify-center mt-10 gap-2">
+        <div className="flex justify-center mt-12 gap-2">
           <button
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
@@ -177,7 +243,7 @@ export default function Test() {
                 onClick={() => setPage(pageNum)}
                 className={`px-4 py-2 rounded-lg ${
                   page === pageNum
-                    ? "bg-blue-600 text-white"
+                    ? "bg-yellow-600 text-white"
                     : "bg-gray-200 hover:bg-gray-300"
                 }`}
               >
@@ -199,7 +265,7 @@ export default function Test() {
       {/* FLOATING ADD BUTTON */}
       <button
         onClick={handleAddCourse}
-        className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700
+        className="fixed bottom-8 right-8 bg-yellow-500 hover:bg-yellow-600
                    text-white rounded-full p-5 shadow-2xl
                    transition active:scale-90"
         title="Add New Test"
