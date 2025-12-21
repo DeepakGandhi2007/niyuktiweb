@@ -45,13 +45,13 @@ export default function CreateGroupModal({ onClose }) {
 
   /* ---------- Load courses + users ---------- */
   useEffect(() => {
-    fetch(`${API_URL}/api/courses/with-users`, {
+    fetch(`${API_URL}/api/chat/courses-with-users`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
       .then((r) => r.json())
       .then(setCourses);
 
-    fetch(`${API_URL}/api/users/all`, {
+    fetch(`${API_URL}/api/auth/all`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
       .then((r) => r.json())
