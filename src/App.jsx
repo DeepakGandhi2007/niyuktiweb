@@ -15,6 +15,7 @@ import Test from "./pages/Test/Index";
 import AddTest from "./pages/Test/add";
 import EditTest from "./pages/Test/EditTest";
 import TestCategories from "./pages/TestCategory";
+import ChatAdmin from "./pages/chat";
 function App() {
   return (
     <BrowserRouter>
@@ -28,10 +29,11 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/users" element={<Users />} />
             <Route path="/banner" element={<Banner />} />
-             <Route path="/category" element={<Categories />} />
+            <Route path="/category" element={<Categories />} />
             <Route path="/test-category" element={<TestCategories />} />
             <Route path="/course" element={<Course />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/group-chat" element={<ChatAdmin />} />
             <Route path="/course/add" element={<AddCourse />} />
             <Route path="/mock-test" element={<Test />} />
              <Route path="/test/add" element={<AddTest />} />

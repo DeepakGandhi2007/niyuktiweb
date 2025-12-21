@@ -14,6 +14,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
     { to: "/mock-test", icon: <FaBook />, label: "Mock Test" },
     { to: "/file-manager", icon: <FaFolder />, label: "File Manager" },
     { to: "/settings", icon: <FaCog />, label: "Settings" },
+    { to: "/group-chat", icon: <FaCog />, label: "Group Chat" },
   ];
 
   return (
