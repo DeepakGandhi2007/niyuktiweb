@@ -7,7 +7,7 @@ export default function ChatList({ onSelect }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    fetch("/api/chat/groups", {
+    fetch("https://api.niyukti.cloud/api/chat/groups", {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`
       }
