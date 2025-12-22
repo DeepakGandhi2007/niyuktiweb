@@ -51,7 +51,7 @@ export default function CreateGroupModal({ onClose }) {
       .then((r) => r.json())
       .then(setCourses);
 
-    fetch(`${API_URL}/api/auth/all`, {
+    fetch(`${API_URL}/api/chat/users/all`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
       .then((r) => r.json())
