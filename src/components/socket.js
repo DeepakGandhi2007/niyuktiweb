@@ -1,8 +1,7 @@
 import { io } from "socket.io-client";
 
-const SOCKET_URL = "https://api.niyukti.cloud"; // change
-
-export const socket = io(SOCKET_URL, {
+export const socket = io("https://api.niyukti.cloud", {
   transports: ["websocket"],
-  autoConnect: false
+  withCredentials: true,
+  autoConnect: false,
 });
